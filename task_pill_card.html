@@ -1,0 +1,140 @@
+
+<style>
+  .task-pill {
+    width: 100%;
+    background: #f0e6ff;
+    border-radius: 10px;
+    border: 2.5px solid #2C2C2A;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-height: 56px;
+    margin: 1.5rem 0;
+  }
+  .pill-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 10px 14px;
+    border-right: 2.5px solid #2C2C2A;
+    box-sizing: border-box;
+    gap: 3px;
+  }
+  .pill-section:last-child { border-right: none; }
+  .pill-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5F5E5A;
+  }
+  .pill-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #2C2C2A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .s-due    { width: 16.66%; background: #ffd6e0; }
+  .s-assign { width: 16.66%; background: #d6f0ff; }
+  .s-prio   { width: 16.66%; background: #fff0c2; }
+  .s-desc   { width: 50%; background: #f0e6ff; }
+
+  .pill-demo-wrap {
+    padding: 2rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .demo-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: #888780;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    border: 1.5px solid #2C2C2A;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge-high   { background: #ffb3b3; color: #501313; border-color: #A32D2D; }
+  .badge-med    { background: #FFE4A0; color: #412402; border-color: #BA7517; }
+  .badge-low    { background: #C0DD97; color: #173404; border-color: #3B6D11; }
+
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+  }
+  .dot-high { background: #E24B4A; }
+  .dot-med  { background: #EF9F27; }
+  .dot-low  { background: #639922; }
+</style>
+
+<div class="pill-demo-wrap">
+  <div class="demo-title">Example tasks</div>
+
+  <div class="task-pill">
+    <div class="pill-section s-due" style="width:16.66%">
+      <span class="pill-label">Due date</span>
+      <span class="pill-value">Apr 4</span>
+    </div>
+    <div class="pill-section s-assign" style="width:16.66%">
+      <span class="pill-label">Assignee</span>
+      <span class="pill-value">Prateek G.</span>
+    </div>
+    <div class="pill-section s-prio" style="width:16.66%">
+      <span class="pill-label">Priority</span>
+      <span class="pill-value"><span class="badge badge-high"><span class="dot dot-high"></span>High</span></span>
+    </div>
+    <div class="pill-section s-desc" style="width:50%">
+      <span class="pill-label">Task</span>
+      <span class="pill-value">Fix ON CONFLICT logic for duplicate ticket insertions in zippy ETL</span>
+    </div>
+  </div>
+
+  <div class="task-pill">
+    <div class="pill-section s-due" style="width:16.66%">
+      <span class="pill-label">Due date</span>
+      <span class="pill-value">Apr 10</span>
+    </div>
+    <div class="pill-section s-assign" style="width:16.66%">
+      <span class="pill-label">Assignee</span>
+      <span class="pill-value">Hardik P.</span>
+    </div>
+    <div class="pill-section s-prio" style="width:16.66%">
+      <span class="pill-label">Priority</span>
+      <span class="pill-value"><span class="badge badge-med"><span class="dot dot-med"></span>Medium</span></span>
+    </div>
+    <div class="pill-section s-desc" style="width:50%">
+      <span class="pill-label">Task</span>
+      <span class="pill-value">Review Aqua America Hazard__c field mapping for Q2 mailing schedule</span>
+    </div>
+  </div>
+
+  <div class="task-pill">
+    <div class="pill-section s-due" style="width:16.66%">
+      <span class="pill-label">Due date</span>
+      <span class="pill-value">Apr 18</span>
+    </div>
+    <div class="pill-section s-assign" style="width:16.66%">
+      <span class="pill-label">Assignee</span>
+      <span class="pill-value">Amana</span>
+    </div>
+    <div class="pill-section s-prio" style="width:16.66%">
+      <span class="pill-label">Priority</span>
+      <span class="pill-value"><span class="badge badge-low"><span class="dot dot-low"></span>Low</span></span>
+    </div>
+    <div class="pill-section s-desc" style="width:50%">
+      <span class="pill-label">Task</span>
+      <span class="pill-value">Set up Powerlevel10k segments for Ruby version indicator in Kitty terminal</span>
+    </div>
+  </div>
+</div>
