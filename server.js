@@ -8,5 +8,9 @@ http.createServer(async (req, res) => {
         const result = await db.query('SELECT * FROM tasks');
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(result.rows));
+    } else if(req.url === '/api/projects') {
+        const result = await db.query('SELECT id, name, gid FROM projects ORDER BY name');
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(result.rows));
     }
 }).listen(3001, () => console.log('server running on 3001'))
