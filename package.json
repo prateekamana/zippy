@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node server.js && vite build",
     "preview": "vite preview"
   },
   "keywords": [],
