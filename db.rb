@@ -47,6 +47,8 @@ csv_row_array = []
 CSV.parse(csv.to_s, headers: true).to_a.drop(2).each_with_index do |row, i|
     if(row.all?(&:nil?))
         ap "Skipping empty row"
+    elsif row[0].nil? || row[0].strip.empty?
+        ap "Skipping row #{i + 3}: no sheet_id"
     else
         csv_row_array << [row, i + 3]
     end
