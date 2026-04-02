@@ -8,6 +8,6 @@ const root = createRoot(document.getElementById('root'));
 root.render(
   <StrictMode>
     <Tasks />
-    <App />
+    {/* <App /> */}
   </StrictMode>
 );

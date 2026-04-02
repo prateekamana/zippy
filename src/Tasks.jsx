@@ -7,12 +7,18 @@ export default function Tasks() {
 
   const [projects, setProjects] = useState([]);
 
-  const [filters, setFilters] = useState({
-    assignee: "",
-    dateFilter: null,   // null | 'today' | 'upcoming'
-    status: "",         // "" | 'pending' | 'completed'
-    project: "",        // "" | project uuid
-  });
+  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "" };
+
+  function readFiltersFromStorage() {
+    try { return { ...defaultFilters, ...JSON.parse(localStorage.getItem('filters')) }; }
+    catch { return defaultFilters; }
+  }
+
+  const [filters, setFilters] = useState(readFiltersFromStorage);
+
+  useEffect(() => {
+    localStorage.setItem('filters', JSON.stringify(filters));
+  }, [filters]);
 
   useEffect(() => {
     fetch("/api/tasks")
@@ -110,6 +116,20 @@ export default function Tasks() {
       return toReturn;
     });
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await fetch('/api/refresh', { method: 'POST' });
+    const [tasksRes, projectsRes] = await Promise.all([
+      fetch('/api/tasks').then(r => r.json()),
+      fetch('/api/projects').then(r => r.json()),
+    ]);
+    setTasks(tasksRes);
+    setProjects(projectsRes);
+    setRefreshing(false);
+  }
+
   function toggleDateFilter(value) {
     setFilters(f => ({ ...f, dateFilter: f.dateFilter === value ? null : value }));
   }
@@ -135,30 +155,30 @@ export default function Tasks() {
           {assignees.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
 
-        <button
-          className={`filter-btn${filters.status === "pending" ? " filter-btn-active" : ""}`}
-          onClick={() => setFilters(f => ({ ...f, status: f.status === "pending" ? "" : "pending" }))}
-        >
-          Pending
-        </button>
-        <button
-          className={`filter-btn${filters.status === "completed" ? " filter-btn-active" : ""}`}
-          onClick={() => setFilters(f => ({ ...f, status: f.status === "completed" ? "" : "completed" }))}
-        >
-          Completed
-        </button>
+        <div className="btn-group">
+          <button
+            className={`filter-btn${filters.status === "pending" ? " filter-btn-active" : ""}`}
+            onClick={() => setFilters(f => ({ ...f, status: f.status === "pending" ? "" : "pending" }))}
+          >Pending</button>
+          <button
+            className={`filter-btn${filters.status === "completed" ? " filter-btn-active" : ""}`}
+            onClick={() => setFilters(f => ({ ...f, status: f.status === "completed" ? "" : "completed" }))}
+          >Completed</button>
+        </div>
 
-        <button
-          className={`filter-btn${filters.dateFilter === "today" ? " filter-btn-active" : ""}`}
-          onClick={() => toggleDateFilter("today")}
-        >
-          Today &amp; Overdue
-        </button>
-        <button
-          className={`filter-btn${filters.dateFilter === "upcoming" ? " filter-btn-active" : ""}`}
-          onClick={() => toggleDateFilter("upcoming")}
-        >
-          Upcoming
+        <div className="btn-group">
+          <button
+            className={`filter-btn${filters.dateFilter === "today" ? " filter-btn-active" : ""}`}
+            onClick={() => toggleDateFilter("today")}
+          >Today</button>
+          <button
+            className={`filter-btn${filters.dateFilter === "upcoming" ? " filter-btn-active" : ""}`}
+            onClick={() => toggleDateFilter("upcoming")}
+          >Upcoming</button>
+        </div>
+
+        <button className="filter-btn refresh-btn" onClick={handleRefresh} disabled={refreshing}>
+          {refreshing ? "Refreshing..." : "Refresh"} ↻
         </button>
       </div>
 
