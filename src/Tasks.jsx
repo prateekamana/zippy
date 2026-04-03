@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
 
+const PROJECT_BUTTONS = [
+  { label: "Aqua",  projectId: "28bdccd2-f9c7-4c1f-bf9a-15777d4cc010" },
+  { label: "CWP",   projectId: "d6e47b1d-509e-4401-9f62-dd042c4602fe" },
+  { label: "Fire",  projectId: "4bf4a22e-2531-4279-9e8c-4dae672284f3" },
+];
+
 export default function Tasks() {
   const result = useState([]);
   const tasks = result[0];
@@ -15,6 +21,7 @@ export default function Tasks() {
   }
 
   const [filters, setFilters] = useState(readFiltersFromStorage);
+  const [collapsedProjects, setCollapsedProjects] = useState({});
 
   useEffect(() => {
     localStorage.setItem('filters', JSON.stringify(filters));
@@ -77,11 +84,20 @@ export default function Tasks() {
 
   const SHEET_ID = '1SHSRxATYjYQTuf5zdbBP2Q0KZvQl7kLo6WhSBNTwyFQ';
   const projectGidMap = Object.fromEntries(projects.map(p => [p.id, p.gid]));
+  const projectNames = Object.fromEntries(projects.map(p => [p.id, p.name]));
 
   function sheetUrl(task) {
     const gid = projectGidMap[task.project_id];
     if (gid == null || !task.sheet_row) return null;
     return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${gid}&range=A${task.sheet_row}`;
+  }
+
+  function openSheet(url) {
+    if (window.electron?.openExternal) {
+      window.electron.openExternal(url);
+    } else {
+      window.open(url, '_blank');
+    }
   }
 
   const assignees = [...new Set(tasks.map(t => t.assignee).filter(Boolean))].sort();
@@ -120,6 +136,32 @@ export default function Tasks() {
       return toReturn;
     });
 
+  // Group tasks by project
+  const tasksByProject = {};
+  for (const task of visibleTasks) {
+    const pid = task.project_id;
+    if (!tasksByProject[pid]) tasksByProject[pid] = [];
+    tasksByProject[pid].push(task);
+  }
+
+  const visibleProjectIds = Object.keys(tasksByProject);
+
+  function toggleProject(projectId) {
+    setCollapsedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
+  }
+
+  function expandAllProjects() {
+    const next = {};
+    visibleProjectIds.forEach(id => { next[id] = false; });
+    setCollapsedProjects(next);
+  }
+
+  function collapseAllProjects() {
+    const next = {};
+    visibleProjectIds.forEach(id => { next[id] = true; });
+    setCollapsedProjects(next);
+  }
+
   const [refreshing, setRefreshing] = useState(false);
 
   async function handleRefresh() {
@@ -136,6 +178,53 @@ export default function Tasks() {
 
   function toggleDateFilter(value) {
     setFilters(f => ({ ...f, dateFilter: f.dateFilter === value ? null : value }));
+  }
+
+  function renderTask(task) {
+    return (
+      <div key={task.id} className="task-pill-group">
+        <div className="task-pill">
+          <div className="pill-section s-due">
+            <span className="pill-value">{formatDate(task.due_date)}</span>
+          </div>
+          <div className="pill-section s-assign">
+            <span className="pill-value">{task.assignee}</span>
+          </div>
+          <div className="pill-section s-prio">
+            <span className="pill-value">
+              <span className={priorityBadgeClass(task.priority)[0]}>
+                <span className={priorityBadgeClass(task.priority)[1]}></span>{task.priority}
+              </span>
+            </span>
+          </div>
+          <div className="pill-section s-status">
+            <span className="pill-value">
+              <span className={statusBadgeClass(task.status)}>{task.status}</span>
+            </span>
+          </div>
+          <div className="pill-section s-desc">
+            <span className="pill-value pill-value-wrap">{task.description}</span>
+          </div>
+          {sheetUrl(task) && (
+            <div className="pill-section s-sheet-link">
+              <button
+                type="button"
+                className="sheet-link"
+                title="Open in Google Sheets"
+                onClick={() => openSheet(sheetUrl(task))}
+              >
+                ↗
+              </button>
+            </div>
+          )}
+        </div>
+        {task.notes && (
+          <div className="task-notes-strip">
+            {task.notes}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -158,6 +247,16 @@ export default function Tasks() {
           <option value="">All assignees</option>
           {assignees.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
+
+        <div className="btn-group">
+          {PROJECT_BUTTONS.map(btn => (
+            <button
+              key={btn.label}
+              className={`filter-btn${filters.project === btn.projectId ? " filter-btn-active" : ""}`}
+              onClick={() => setFilters(f => ({ ...f, project: f.project === btn.projectId ? "" : btn.projectId }))}
+            >{btn.label}</button>
+          ))}
+        </div>
 
         <div className="btn-group">
           <button
@@ -197,42 +296,32 @@ export default function Tasks() {
         </button>
       </div>
 
-      {visibleTasks.map((task) => {
+      {visibleProjectIds.length > 1 && (
+        <div className="accordion-controls">
+          <button className="filter-btn" onClick={expandAllProjects}>Expand All</button>
+          <button className="filter-btn" onClick={collapseAllProjects}>Collapse All</button>
+        </div>
+      )}
+
+      {visibleProjectIds.map(projectId => {
+        const isCollapsed = !!collapsedProjects[projectId];
+        const name = projectNames[projectId] || projectId;
         return (
-          <div key={task.id} className="task-pill-group">
-            <div className="task-pill">
-              <div className="pill-section s-due">
-                <span className="pill-value">{formatDate(task.due_date)}</span>
-              </div>
-              <div className="pill-section s-assign">
-                <span className="pill-value">{task.assignee}</span>
-              </div>
-              <div className="pill-section s-prio">
-                <span className="pill-value">
-                  <span className={priorityBadgeClass(task.priority)[0]}>
-                    <span className={priorityBadgeClass(task.priority)[1]}></span>{task.priority}
-                  </span>
-                </span>
-              </div>
-              <div className="pill-section s-status">
-                <span className="pill-value">
-                  <span className={statusBadgeClass(task.status)}>{task.status}</span>
-                </span>
-              </div>
-              <div className="pill-section s-desc">
-                <span className="pill-value pill-value-wrap">{task.description}</span>
-              </div>
-              {sheetUrl(task) && (
-                <div className="pill-section s-sheet-link">
-                  <a href={sheetUrl(task)} target="_blank" rel="noreferrer" className="sheet-link" title="Open in Google Sheets">
-                    ↗
-                  </a>
-                </div>
-              )}
-            </div>
-            {task.notes && (
-              <div className="task-notes-strip">
-                {task.notes}
+          <div key={projectId} className="project-accordion">
+            <button
+              type="button"
+              className="project-accordion-header"
+              onClick={() => toggleProject(projectId)}
+            >
+              <span className={`accordion-chevron ${isCollapsed ? "collapsed" : ""}`}>
+                {isCollapsed ? "▶" : "▼"}
+              </span>
+              {name}
+              <span className="accordion-count">{tasksByProject[projectId].length}</span>
+            </button>
+            {!isCollapsed && (
+              <div className="accordion-body">
+                {tasksByProject[projectId].map(renderTask)}
               </div>
             )}
           </div>

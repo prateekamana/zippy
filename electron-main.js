@@ -1,4 +1,8 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDev = process.env.ELECTRON_ENV === 'development';
 const APP_URL = isDev ? 'http://localhost:5173' : 'http://localhost:3001';
@@ -14,7 +18,13 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            preload: path.join(__dirname, 'preload.mjs'),
         }
+    });
+
+    // Handle external URL requests
+    ipcMain.handle('open-external', (_event, url) => {
+        shell.openExternal(url);
     });
 
     // Retry loading in case the server needs a moment to bind

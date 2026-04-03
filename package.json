@@ -45,6 +45,7 @@
     "files": [
       "dist/**/*",
       "electron-main.js",
+      "preload.mjs",
       "server.js",
       "db.js"
     ],

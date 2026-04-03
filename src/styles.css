@@ -123,6 +123,10 @@ body {
     align-items: center;
     justify-content: center;
     padding: 0 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
   }
   .sheet-link:hover { color: #2C2C2A; }
 
@@ -220,6 +224,56 @@ body {
   .btn-group .filter-btn:last-child { border-radius: 0 8px 8px 0; }
 
   .refresh-btn { margin-left: auto; }
+
+  /* project accordion */
+  .accordion-controls {
+    display: flex;
+    gap: 6px;
+    padding: 0.5rem 0;
+  }
+
+  .project-accordion {
+    margin-top: 0.75rem;
+  }
+
+  .project-accordion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1.5px solid rgba(44, 44, 42, 0.15);
+    padding: 8px 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2C2C2A;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    background-color: #b3d3c1 !important;
+  }
+  .project-accordion-header:hover {
+    background: rgba(44, 44, 42, 0.04);
+  }
+
+  .accordion-chevron {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+  }
+
+  .accordion-count {
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 10px;
+    padding: 1px 8px;
+    margin-left: auto;
+    color: #000000;
+  }
+
+  .accordion-body {
+    padding-top: 4px;
+  }
 
   /* login */
   .login-page {
