@@ -1,16 +1,12 @@
-import pg from 'pg';
 import http from 'http';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFile } from 'fs/promises';
+import { db, syncProject, runInitialSetup } from './db.js';
 
-const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const db = new pg.Pool({database: 'zippy'})
 
 const sessions = new Set();
 
@@ -37,7 +33,7 @@ function requireAuth(req, res) {
     return true;
 }
 
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
     const start = Date.now();
     let status = 200;
 
@@ -71,20 +67,22 @@ http.createServer(async (req, res) => {
 
         } else if (req.url === '/api/refresh' && req.method === 'POST') {
             if (!requireAuth(req, res)) { status = 401; return; }
-            const dbScript = path.join(__dirname, 'db.rb');
             const totalStart = Date.now();
-            for (const project of ['CWP', 'AQUA', 'FIRE']) {
-                const projectStart = Date.now();
-                process.stdout.write(`[refresh] ${project}...`);
-                await execAsync(`ruby ${dbScript} ${project}`);
-                console.log(` done (${((Date.now() - projectStart) / 1000).toFixed(1)}s)`);
+            for (const project of ['CWP - 3rd Party', 'CWP - Aqua', 'NAFISC']) {
+                await syncProject(project);
             }
             console.log(`[refresh] all done in ${((Date.now() - totalStart) / 1000).toFixed(1)}s`);
             await db.query(`
-                UPDATE tasks t
-                SET assignee_id = u.id
-                FROM users u
-                WHERE LOWER(TRIM(t.assignee)) = LOWER(u.first_name)
+                UPDATE tasks
+                SET assignee_id = (
+                    SELECT u.id FROM users u
+                    WHERE LOWER(TRIM(tasks.assignee)) = LOWER(u.first_name)
+                    LIMIT 1
+                )
+                WHERE EXISTS (
+                    SELECT 1 FROM users u
+                    WHERE LOWER(TRIM(tasks.assignee)) = LOWER(u.first_name)
+                )
             `);
             console.log('[refresh] assignee_id matched');
             res.setHeader('Content-Type', 'application/json');
@@ -118,9 +116,34 @@ http.createServer(async (req, res) => {
             }
 
         } else {
-            status = 404;
-            res.writeHead(404, {'Content-Type': 'application/json'});
-            res.end(JSON.stringify({ error: 'not found' }));
+            // Serve static files from dist/ (used by Electron)
+            const distDir = path.join(__dirname, 'dist');
+            const rawUrl = req.url.split('?')[0];
+            const filePath = path.resolve(path.join(distDir, rawUrl));
+            if (!filePath.startsWith(distDir)) {
+                status = 403;
+                res.writeHead(403);
+                res.end('Forbidden');
+                return;
+            }
+            try {
+                const content = await readFile(filePath);
+                const ext = path.extname(filePath);
+                const mime = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+                res.setHeader('Content-Type', mime[ext] || 'application/octet-stream');
+                res.end(content);
+            } catch {
+                // SPA fallback — serve index.html for unknown routes
+                try {
+                    const html = await readFile(path.join(distDir, 'index.html'));
+                    res.setHeader('Content-Type', 'text/html');
+                    res.end(html);
+                } catch {
+                    status = 404;
+                    res.writeHead(404);
+                    res.end('Not found');
+                }
+            }
         }
     } catch (err) {
         status = 500;
@@ -130,7 +153,18 @@ http.createServer(async (req, res) => {
     }
 
     logTiming(req.method, req.url, status, start);
-}).listen(3001, () => console.log('server running on 3001'))
+});
+
+async function main() {
+    try {
+        await runInitialSetup();
+    } catch (err) {
+        console.error('[setup] Error during setup:', err.message);
+        console.error('[setup] SQLite database initialization failed.');
+    }
+    server.listen(3001, () => console.log('server running on 3001'));
+}
+main();
 
 function readBody(req) {
     return new Promise((resolve, reject) => {

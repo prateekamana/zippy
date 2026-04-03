@@ -22,8 +22,24 @@ pnpm-debug.log*
 .idea/
 Thumbs.db
 
+# AI/Editor Tools
+.claude/
+.qwen/
+.ruby-lsp/
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
 # Testing
 coverage/
 
 # Misc
 *.local
+
+# Electron build output
+release/
+*.dmg
+*.blockmap
+dist-electron/

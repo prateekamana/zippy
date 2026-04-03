@@ -21,6 +21,11 @@ function App() {
 const root = createRoot(document.getElementById('root'));
 root.render(
   <StrictMode>
-    <App />
+    <>
+      <div className="title-bar">
+        <span className="title-bar-label">Zippy</span>
+      </div>
+      <App />
+    </>
   </StrictMode>
 );

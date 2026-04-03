@@ -1,20 +1,24 @@
 {
   "name": "minimal-vite",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "electron-main.js",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite\"",
     "rbdev": "concurrently \"ruby server.rb\" \"vite\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "ELECTRON_ENV=development concurrently \"vite\" \"electronmon .\"",
+    "electron:start": "npm run build && electron .",
+    "electron:build": "npm run build && electron-builder --mac"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.8.0",
     "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -22,6 +26,40 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
+    "electron": "^35.7.5",
+    "electron-builder": "^25.1.8",
+    "electronmon": "^2.0.4",
     "vite": "^8.0.1"
+  },
+  "electronmon": {
+    "patterns": [
+      "electron-main.js",
+      "server.js",
+      "db.js"
+    ]
+  },
+  "build": {
+    "appId": "com.zippy.tasks",
+    "productName": "Tasks",
+    "asar": false,
+    "files": [
+      "dist/**/*",
+      "electron-main.js",
+      "server.js",
+      "db.js"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": {
+        "target": "dmg",
+        "arch": [
+          "arm64",
+          "x64"
+        ]
+      }
+    },
+    "directories": {
+      "output": "release"
+    }
   }
 }
