@@ -54,7 +54,12 @@ http.createServer(async (req, res) => {
 
         } else if (req.url === '/api/tasks' && req.method === 'GET') {
             if (!requireAuth(req, res)) { status = 401; return; }
-            const result = await db.query('SELECT * FROM tasks');
+            const result = await db.query(`
+                SELECT t.*, c.name AS company_name
+                FROM tasks t
+                LEFT JOIN users u ON t.assignee_id = u.id
+                LEFT JOIN companies c ON u.company_id = c.id
+            `);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(result.rows));
 
@@ -75,6 +80,13 @@ http.createServer(async (req, res) => {
                 console.log(` done (${((Date.now() - projectStart) / 1000).toFixed(1)}s)`);
             }
             console.log(`[refresh] all done in ${((Date.now() - totalStart) / 1000).toFixed(1)}s`);
+            await db.query(`
+                UPDATE tasks t
+                SET assignee_id = u.id
+                FROM users u
+                WHERE LOWER(TRIM(t.assignee)) = LOWER(u.first_name)
+            `);
+            console.log('[refresh] assignee_id matched');
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ ok: true }));
 

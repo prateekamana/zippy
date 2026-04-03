@@ -7,7 +7,7 @@ export default function Tasks() {
 
   const [projects, setProjects] = useState([]);
 
-  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "" };
+  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "", company: "" };
 
   function readFiltersFromStorage() {
     try { return { ...defaultFilters, ...JSON.parse(localStorage.getItem('filters')) }; }
@@ -104,6 +104,10 @@ export default function Tasks() {
       return task.project_id === filters.project;
     })
     .filter(task => {
+      if (!filters.company) return true;
+      return task.company_name === filters.company;
+    })
+    .filter(task => {
       if (!filters.dateFilter) return true;
       const due = new Date(task.due_date?.includes('T') ? task.due_date : task.due_date + 'T00:00:00');
       due.setHours(0, 0, 0, 0);
@@ -154,6 +158,17 @@ export default function Tasks() {
           <option value="">All assignees</option>
           {assignees.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
+
+        <div className="btn-group">
+          <button
+            className={`filter-btn${filters.company === "NAWSC" ? " filter-btn-active" : ""}`}
+            onClick={() => setFilters(f => ({ ...f, company: f.company === "NAWSC" ? "" : "NAWSC" }))}
+          >NAWSC</button>
+          <button
+            className={`filter-btn${filters.company === "CloudMentor" ? " filter-btn-active" : ""}`}
+            onClick={() => setFilters(f => ({ ...f, company: f.company === "CloudMentor" ? "" : "CloudMentor" }))}
+          >CloudMentor</button>
+        </div>
 
         <div className="btn-group">
           <button
