@@ -31,7 +31,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1 className="login-title">Zippy</h1>
+        <h1 className="login-title">Zippy CI/CD</h1>
         <form onSubmit={handleSubmit} className="login-form">
           <input
             className="login-input"
