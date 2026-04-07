@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import posthog from 'posthog-js';
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('');
@@ -17,6 +18,7 @@ export default function Login({ onLogin }) {
         body: JSON.stringify({ username, password }),
       });
       if (res.ok) {
+        posthog.identify(username);
         onLogin();
       } else {
         setError('Invalid username or password.');

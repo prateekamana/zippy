@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import posthog from 'posthog-js';
 
 const PROJECT_BUTTONS = [
   { label: "Aqua",  projectId: "28bdccd2-f9c7-4c1f-bf9a-15777d4cc010" },
@@ -93,6 +94,7 @@ export default function Tasks() {
   }
 
   function openSheet(url) {
+    posthog.capture('sheet_link_opened');
     if (window.electron?.openExternal) {
       window.electron.openExternal(url);
     } else {
@@ -147,7 +149,9 @@ export default function Tasks() {
   const visibleProjectIds = Object.keys(tasksByProject);
 
   function toggleProject(projectId) {
+    const nowCollapsed = !collapsedProjects[projectId];
     setCollapsedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
+    posthog.capture('project_toggled', { action: nowCollapsed ? 'collapse' : 'expand' });
   }
 
   function expandAllProjects() {
@@ -166,6 +170,7 @@ export default function Tasks() {
 
   async function handleRefresh() {
     setRefreshing(true);
+    posthog.capture('tasks_refreshed');
     await fetch('/api/refresh', { method: 'POST' });
     const [tasksRes, projectsRes] = await Promise.all([
       fetch('/api/tasks').then(r => r.json()),
@@ -177,7 +182,11 @@ export default function Tasks() {
   }
 
   function toggleDateFilter(value) {
-    setFilters(f => ({ ...f, dateFilter: f.dateFilter === value ? null : value }));
+    setFilters(f => {
+      const next = f.dateFilter === value ? null : value;
+      posthog.capture('filter_applied', { filter_type: 'date', has_value: !!next, date_filter: next });
+      return { ...f, dateFilter: next };
+    });
   }
 
   function renderTask(task) {
@@ -233,7 +242,7 @@ export default function Tasks() {
         <select
           className="filter-select"
           value={filters.project}
-          onChange={e => setFilters(f => ({ ...f, project: e.target.value }))}
+          onChange={e => { setFilters(f => ({ ...f, project: e.target.value })); posthog.capture('filter_applied', { filter_type: 'project', has_value: !!e.target.value }); }}
         >
           <option value="">All projects</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -242,7 +251,7 @@ export default function Tasks() {
         <select
           className="filter-select"
           value={filters.assignee}
-          onChange={e => setFilters(f => ({ ...f, assignee: e.target.value }))}
+          onChange={e => { setFilters(f => ({ ...f, assignee: e.target.value })); posthog.capture('filter_applied', { filter_type: 'assignee', has_value: !!e.target.value }); }}
         >
           <option value="">All assignees</option>
           {assignees.map(a => <option key={a} value={a}>{a}</option>)}

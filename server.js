@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import http from 'http';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -5,6 +6,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFile } from 'fs/promises';
 import { db, syncProject, runInitialSetup } from './db.js';
+import { PostHog } from 'posthog-node';
+
+const posthog = new PostHog(process.env.POSTHOG_PROJECT_TOKEN, {
+    host: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
+});
+process.on('exit', () => posthog.shutdown());
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -71,7 +78,8 @@ const server = http.createServer(async (req, res) => {
             for (const project of ['CWP - 3rd Party', 'CWP - Aqua', 'NAFISC']) {
                 await syncProject(project);
             }
-            console.log(`[refresh] all done in ${((Date.now() - totalStart) / 1000).toFixed(1)}s`);
+            const syncDurationMs = Date.now() - totalStart;
+            console.log(`[refresh] all done in ${(syncDurationMs / 1000).toFixed(1)}s`);
             await db.query(`
                 UPDATE tasks
                 SET assignee_id = (
@@ -85,6 +93,13 @@ const server = http.createServer(async (req, res) => {
                 )
             `);
             console.log('[refresh] assignee_id matched');
+            const { session: sessionToken } = parseCookies(req);
+            const syncUser = sessionToken || 'server';
+            posthog.capture({
+                distinctId: syncUser,
+                event: 'tasks_synced',
+                properties: { duration_ms: syncDurationMs, project_count: 3 },
+            });
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ ok: true }));
 
@@ -108,10 +123,12 @@ const server = http.createServer(async (req, res) => {
                     res.setHeader('Set-Cookie', `session=${token}; HttpOnly; SameSite=Strict; Path=/`);
                     res.setHeader('Content-Type', 'application/json');
                     res.end(JSON.stringify({ ok: true }));
+                    posthog.capture({ distinctId: username, event: 'user_logged_in' });
                 } else {
                     status = 401;
                     res.writeHead(401, {'Content-Type': 'application/json'});
                     res.end(JSON.stringify({ error: 'invalid credentials' }));
+                    posthog.capture({ distinctId: username || 'anonymous', event: 'login_failed' });
                 }
             }
 
