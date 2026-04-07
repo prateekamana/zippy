@@ -16,6 +16,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/zippy
+            git checkout master
             git pull
             npm install
             npm run build
