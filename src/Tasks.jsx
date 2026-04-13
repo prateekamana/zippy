@@ -163,6 +163,47 @@ export default function Tasks() {
   }
 
   const [refreshing, setRefreshing] = useState(false);
+  const [tooltip, setTooltip] = useState({ visible: false, content: null, x: 0, y: 0 });
+
+  const sheetIdToTask = Object.fromEntries(
+    tasks.filter(t => t.sheet_id).map(t => [String(t.sheet_id), t])
+  );
+
+  function renderNotes(notes) {
+    const TOKEN_RE = /(\d+_\d+)/g;
+    const parts = [];
+    let last = 0;
+    let match;
+    while ((match = TOKEN_RE.exec(notes)) !== null) {
+      if (match.index > last) parts.push(notes.slice(last, match.index));
+      const token = match[1];
+      const refTask = sheetIdToTask[token];
+      parts.push(
+        <span
+          key={match.index}
+          className={`task-ref-token${refTask ? " task-ref-token-linked" : ""}`}
+          onMouseEnter={(e) => {
+            if (refTask) setTooltip({ visible: true, content: refTask, x: e.clientX, y: e.clientY });
+          }}
+          onMouseMove={(e) => {
+            if (refTask) setTooltip(t => ({ ...t, x: e.clientX, y: e.clientY }));
+          }}
+          onMouseLeave={() => setTooltip(t => ({ ...t, visible: false }))}
+          onClick={() => {
+            if (refTask) {
+              const el = document.getElementById(`task-${refTask.id}`);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+        >
+          {token}
+        </span>
+      );
+      last = match.index + token.length;
+    }
+    if (last < notes.length) parts.push(notes.slice(last));
+    return parts;
+  }
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -182,7 +223,7 @@ export default function Tasks() {
 
   function renderTask(task) {
     return (
-      <div key={task.id} className="task-pill-group">
+      <div key={task.id} id={`task-${task.id}`} className="task-pill-group">
         <div className="task-pill">
           <div className="pill-section s-due">
             <span className="pill-value">{formatDate(task.due_date)}</span>
@@ -202,6 +243,11 @@ export default function Tasks() {
               <span className={statusBadgeClass(task.status)}>{task.status}</span>
             </span>
           </div>
+          {task.sheet_id && (
+            <div className="pill-section s-sheet-id">
+              <span className="pill-value pill-sheet-id">{task.sheet_id}</span>
+            </div>
+          )}
           <div className="pill-section s-desc">
             <span className="pill-value pill-value-wrap">{task.description}</span>
           </div>
@@ -220,7 +266,7 @@ export default function Tasks() {
         </div>
         {task.notes && (
           <div className="task-notes-strip">
-            {task.notes}
+            {renderNotes(task.notes)}
           </div>
         )}
       </div>
@@ -300,6 +346,19 @@ export default function Tasks() {
         <div className="accordion-controls">
           <button className="filter-btn" onClick={expandAllProjects}>Expand All</button>
           <button className="filter-btn" onClick={collapseAllProjects}>Collapse All</button>
+        </div>
+      )}
+
+      {tooltip.visible && tooltip.content && (
+        <div
+          className="task-ref-tooltip"
+          style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
+        >
+          <div className="tooltip-desc">{tooltip.content.description}</div>
+          <div className="tooltip-meta">
+            {tooltip.content.assignee && <span>{tooltip.content.assignee}</span>}
+            {tooltip.content.status && <span className={statusBadgeClass(tooltip.content.status)}>{tooltip.content.status}</span>}
+          </div>
         </div>
       )}
 

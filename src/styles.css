@@ -79,6 +79,50 @@ body {
     color: #5F5E5A;
     box-sizing: border-box;
   }
+
+  .task-ref-token {
+    font-family: monospace;
+    font-size: 12px;
+    background: #f0ede8;
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  .task-ref-token-linked {
+    color: #2C2C2A;
+    border-bottom: 1.5px dashed #888;
+    cursor: pointer;
+  }
+
+  .task-ref-token-linked:hover {
+    background: #e2ddd6;
+  }
+
+  .task-ref-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: #2C2C2A;
+    color: #f5f3ef;
+    border-radius: 8px;
+    padding: 8px 12px;
+    max-width: 320px;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+
+  .task-ref-tooltip .tooltip-desc {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .task-ref-tooltip .tooltip-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+    opacity: 0.8;
+  }
   .pill-section {
     display: flex;
     flex-direction: column;
