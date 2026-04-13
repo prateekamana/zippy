@@ -152,6 +152,8 @@ body {
   .s-desc .pill-value {
     margin: 0;
   }
+  .s-project { width: 14%; background: #ddeeff; }
+  .pill-project-name { font-weight: 600; font-size: 0.78em; letter-spacing: 0.02em; }
   .s-due    { width: 10%; background: #ffd6e0; }
   .s-assign { width: 10%; background: #d6f0ff; }
   .s-prio   { width: 10%; background: #ffead7; }

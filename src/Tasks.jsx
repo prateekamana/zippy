@@ -163,6 +163,15 @@ export default function Tasks() {
     setCollapsedProjects(next);
   }
 
+  const [accordionEnabled, setAccordionEnabled] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('accordionEnabled') ?? 'true'); }
+    catch { return true; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('accordionEnabled', JSON.stringify(accordionEnabled));
+  }, [accordionEnabled]);
+
   const [refreshing, setRefreshing] = useState(false);
   const [tooltip, setTooltip] = useState({ visible: false, content: null, x: 0, y: 0 });
 
@@ -222,10 +231,15 @@ export default function Tasks() {
     setFilters(f => ({ ...f, dateFilter: f.dateFilter === value ? null : value }));
   }
 
-  function renderTask(task) {
+  function renderTask(task, showProject = false) {
     return (
       <div key={task.id} id={`task-${task.id}`} className="task-pill-group">
         <div className="task-pill">
+          {showProject && projectNames[task.project_id] && (
+            <div className="pill-section s-project">
+              <span className="pill-value pill-project-name">{projectNames[task.project_id]}</span>
+            </div>
+          )}
           <div className="pill-section s-due">
             <span className="pill-value">{formatDate(task.due_date)}</span>
           </div>
@@ -338,12 +352,17 @@ export default function Tasks() {
           >Upcoming</button>
         </div>
 
+        <button
+          className={`filter-btn${accordionEnabled ? " filter-btn-active" : ""}`}
+          onClick={() => setAccordionEnabled(v => !v)}
+        >Accordion</button>
+
         <button className="filter-btn refresh-btn" onClick={handleRefresh} disabled={refreshing}>
           {refreshing ? "Refreshing..." : "Refresh"} ↻
         </button>
       </div>
 
-      {visibleProjectIds.length > 1 && (
+      {accordionEnabled && visibleProjectIds.length > 1 && (
         <div className="accordion-controls">
           <button className="filter-btn" onClick={expandAllProjects}>Expand All</button>
           <button className="filter-btn" onClick={collapseAllProjects}>Collapse All</button>
@@ -363,30 +382,33 @@ export default function Tasks() {
         </div>
       )}
 
-      {visibleProjectIds.map(projectId => {
-        const isCollapsed = !!collapsedProjects[projectId];
-        const name = projectNames[projectId] || projectId;
-        return (
-          <div key={projectId} className="project-accordion">
-            <button
-              type="button"
-              className="project-accordion-header"
-              onClick={() => toggleProject(projectId)}
-            >
-              <span className={`accordion-chevron ${isCollapsed ? "collapsed" : ""}`}>
-                {isCollapsed ? "▶" : "▼"}
-              </span>
-              {name}
-              <span className="accordion-count">{tasksByProject[projectId].length}</span>
-            </button>
-            {!isCollapsed && (
-              <div className="accordion-body">
-                {tasksByProject[projectId].map(renderTask)}
+      {accordionEnabled
+        ? visibleProjectIds.map(projectId => {
+            const isCollapsed = !!collapsedProjects[projectId];
+            const name = projectNames[projectId] || projectId;
+            return (
+              <div key={projectId} className="project-accordion">
+                <button
+                  type="button"
+                  className="project-accordion-header"
+                  onClick={() => toggleProject(projectId)}
+                >
+                  <span className={`accordion-chevron ${isCollapsed ? "collapsed" : ""}`}>
+                    {isCollapsed ? "▶" : "▼"}
+                  </span>
+                  {name}
+                  <span className="accordion-count">{tasksByProject[projectId].length}</span>
+                </button>
+                {!isCollapsed && (
+                  <div className="accordion-body">
+                    {tasksByProject[projectId].map(t => renderTask(t))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })
+        : visibleTasks.map(t => renderTask(t, true))
+      }
     </div>
   );
 }
