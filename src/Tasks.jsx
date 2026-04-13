@@ -181,7 +181,7 @@ export default function Tasks() {
       parts.push(
         <span
           key={match.index}
-          className={`task-ref-token${refTask ? " task-ref-token-linked" : ""}`}
+          className={`task-ref-token${refTask && sheetUrl(refTask) ? " task-ref-token-linked" : ""}`}
           onMouseEnter={(e) => {
             if (refTask) setTooltip({ visible: true, content: refTask, x: e.clientX, y: e.clientY });
           }}
@@ -191,8 +191,8 @@ export default function Tasks() {
           onMouseLeave={() => setTooltip(t => ({ ...t, visible: false }))}
           onClick={() => {
             if (refTask) {
-              const el = document.getElementById(`task-${refTask.id}`);
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              const url = sheetUrl(refTask);
+              if (url) openSheet(url);
             }
           }}
         >
