@@ -57,6 +57,7 @@ export default function Tasks() {
     if (s.includes("progress") || s.includes("in process")) return "badge badge-status-progress";
     if (s === 'need clarity') return "badge badge-status-discussion";
     if (s === "on hold") return "badge badge-status-hold";
+    if (s === "blocked") return "badge badge-status-blocked";
     return "badge badge-status-default";
   }
 

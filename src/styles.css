@@ -181,6 +181,7 @@ body {
   .badge-status-progress { background:  #FFE4A0; color: #003a52; border-color: #2980b9; }
   .badge-status-hold { background: #e1d2ff; color: #1b003a; border-color: #2980b9; }
   .badge-status-discussion { background:  #1b003a; color: #e1d2ff ; border-color: #2980b9; }
+  .badge-status-blocked  { background: #5c0000; color: #ffd6d6; border-color: #c0392b; }
   .badge-status-default  { background: #e8e8e8; color: #2C2C2A; border-color: #aaa; }
 
   .pill-demo-wrap {
