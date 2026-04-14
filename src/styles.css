@@ -185,6 +185,7 @@ body {
   .badge-status-discussion { background:  #1b003a; color: #e1d2ff ; border-color: #2980b9; }
   .badge-status-blocked  { background: #5c0000; color: #ffd6d6; border-color: #c0392b; }
   .badge-status-ready-for-deployment { background: #003366; color: #e6f0ff; border-color: #004080; }
+  .badge-status-internal-testing { background: #e1d2ff; color: #1b003a; border-color: #9b59b6; }
   .badge-status-default  { background: #e8e8e8; color: #2C2C2A; border-color: #aaa; }
 
   .pill-demo-wrap {

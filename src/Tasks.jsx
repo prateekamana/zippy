@@ -55,6 +55,7 @@ export default function Tasks() {
     if (s === "resolved") return "badge badge-status-resolved";
     if (s === "ready for testing") return "badge badge-status-testing";
     if (s === "ready for deployment") return "badge badge-status-ready-for-deployment";
+    if (s === "internal testing") return "badge badge-status-internal-testing";
     if (s.includes("progress") || s.includes("in process")) return "badge badge-status-progress";
     if (s === 'need clarity') return "badge badge-status-discussion";
     if (s === "on hold") return "badge badge-status-hold";
