@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getFocusList, saveFocusList } from "./FocusList";
 
 const PROJECT_BUTTONS = [
   { label: "Aqua",  projectId: "28bdccd2-f9c7-4c1f-bf9a-15777d4cc010" },
@@ -174,8 +175,19 @@ export default function Tasks() {
     localStorage.setItem('accordionEnabled', JSON.stringify(accordionEnabled));
   }, [accordionEnabled]);
 
+  const [focusIds, setFocusIds] = useState(getFocusList);
   const [refreshing, setRefreshing] = useState(false);
   const [tooltip, setTooltip] = useState({ visible: false, content: null, x: 0, y: 0 });
+
+  function toggleFocus(taskId) {
+    setFocusIds(prev => {
+      const next = prev.includes(taskId)
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId];
+      saveFocusList(next);
+      return next;
+    });
+  }
 
   const sheetIdToTask = Object.fromEntries(
     tasks.filter(t => t.sheet_id).map(t => [String(t.sheet_id), t])
@@ -267,6 +279,16 @@ export default function Tasks() {
           )}
           <div className="pill-section s-desc">
             <span className="pill-value pill-value-wrap">{task.description}</span>
+          </div>
+          <div className="pill-section s-focus-btn">
+            <button
+              type="button"
+              className={`focus-toggle-btn${focusIds.includes(task.id) ? " focus-toggle-btn-active" : ""}`}
+              title={focusIds.includes(task.id) ? "Remove from Focus List" : "Add to Focus List"}
+              onClick={() => toggleFocus(task.id)}
+            >
+              {focusIds.includes(task.id) ? "★" : "☆"}
+            </button>
           </div>
           {sheetUrl(task) && (
             <div className="pill-section s-sheet-link">
