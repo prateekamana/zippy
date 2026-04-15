@@ -153,6 +153,8 @@ export default function Tasks() {
 
   const visibleProjectIds = Object.keys(tasksByProject);
 
+  console.log('[DEBUG] tasks:', tasks.length, 'visibleTasks:', visibleTasks.length, 'projectIds:', visibleProjectIds.length, 'filters:', JSON.stringify(filters));
+
   function toggleProject(projectId) {
     setCollapsedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
   }
