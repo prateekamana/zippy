@@ -463,6 +463,12 @@ body {
     margin-left: auto;
   }
 
+  .no-results {
+    color: #888;
+    font-size: 14px;
+    padding: 2rem 1rem;
+  }
+
   .fl-empty {
     color: #888;
     font-size: 14px;

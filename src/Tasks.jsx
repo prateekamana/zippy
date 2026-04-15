@@ -153,8 +153,6 @@ export default function Tasks() {
 
   const visibleProjectIds = Object.keys(tasksByProject);
 
-  console.log('[DEBUG] tasks:', tasks.length, 'visibleTasks:', visibleTasks.length, 'projectIds:', visibleProjectIds.length, 'filters:', JSON.stringify(filters));
-
   function toggleProject(projectId) {
     setCollapsedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
   }
@@ -381,6 +379,10 @@ export default function Tasks() {
           >Upcoming</button>
         </div>
 
+        {(filters.assignee || filters.status || filters.project || filters.company || filters.dateFilter) && (
+          <button className="filter-btn" onClick={() => setFilters(defaultFilters)}>✕ Clear</button>
+        )}
+
         <button
           className={`filter-btn${accordionEnabled ? " filter-btn-active" : ""}`}
           onClick={() => setAccordionEnabled(v => !v)}
@@ -408,6 +410,12 @@ export default function Tasks() {
             {tooltip.content.assignee && <span>{tooltip.content.assignee}</span>}
             {tooltip.content.status && <span className={statusBadgeClass(tooltip.content.status)}>{tooltip.content.status}</span>}
           </div>
+        </div>
+      )}
+
+      {tasks.length > 0 && visibleTasks.length === 0 && (
+        <div className="no-results">
+          No tasks match the current filters. <button className="filter-btn" onClick={() => setFilters(defaultFilters)}>Clear all</button>
         </div>
       )}
 
