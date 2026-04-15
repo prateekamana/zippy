@@ -3,7 +3,10 @@ import { useState, useEffect, useRef } from "react";
 export const FOCUS_KEY = "focusList";
 
 export function getFocusList() {
-  try { return JSON.parse(localStorage.getItem(FOCUS_KEY)) || []; }
+  try {
+    const val = JSON.parse(localStorage.getItem(FOCUS_KEY));
+    return Array.isArray(val) ? val : [];
+  }
   catch { return []; }
 }
 

@@ -118,6 +118,7 @@ export default function Tasks() {
       if (!filters.status) return true;
       if (filters.status === "completed") return isCompleted(task.status);
       if (filters.status === "pending") return !isCompleted(task.status);
+      return true;
     })
     .filter(task => {
       if (!filters.project) return true;
@@ -129,10 +130,12 @@ export default function Tasks() {
     })
     .filter(task => {
       if (!filters.dateFilter) return true;
-      const due = new Date(task.due_date?.includes('T') ? task.due_date : task.due_date + 'T00:00:00');
+      if (!task.due_date) return false;
+      const due = new Date(task.due_date.includes('T') ? task.due_date : task.due_date + 'T00:00:00');
       due.setHours(0, 0, 0, 0);
       if (filters.dateFilter === "today") return due <= today;
       if (filters.dateFilter === "upcoming") return due > today;
+      return true;
     })
     .sort((a, b) => {
       const taskScores = {'Critical': 0, 'Higher': 1, 'High': 2, 'Medium': 3, 'Low': 4};
