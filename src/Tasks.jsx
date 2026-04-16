@@ -287,11 +287,11 @@ export default function Tasks() {
           <div className="pill-section s-focus-btn">
             <button
               type="button"
-              className={`focus-toggle-btn${focusIds.includes(task.id) ? " focus-toggle-btn-active" : ""}`}
-              title={focusIds.includes(task.id) ? "Remove from Focus List" : "Add to Focus List"}
-              onClick={() => toggleFocus(task.id)}
+              className={`focus-toggle-btn${focusIds.includes(task.sheet_id) ? " focus-toggle-btn-active" : ""}`}
+              title={focusIds.includes(task.sheet_id) ? "Remove from Focus List" : "Add to Focus List"}
+              onClick={() => toggleFocus(task.sheet_id)}
             >
-              {focusIds.includes(task.id) ? "★" : "☆"}
+              {focusIds.includes(task.sheet_id) ? "★" : "☆"}
             </button>
           </div>
           {sheetUrl(task) && (

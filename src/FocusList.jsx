@@ -214,7 +214,7 @@ export default function FocusList() {
   const sheetIdToTask = Object.fromEntries(tasks.filter(t => t.sheet_id).map(t => [String(t.sheet_id), t]));
 
   const focusTasks = focusIds
-    .map(id => tasks.find(t => t.id === id))
+    .map(sid => tasks.find(t => t.sheet_id === sid))
     .filter(Boolean);
 
   function remove(id) {
