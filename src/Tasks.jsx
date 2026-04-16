@@ -234,11 +234,18 @@ export default function Tasks() {
 
   async function handleRefresh() {
     setRefreshing(true);
+    console.log('[refresh] focusIds before refresh:', getFocusList());
+    console.log('[refresh] sample task sheet_ids before:', tasks.slice(0,3).map(t => t.sheet_id));
     await fetch('/api/refresh', { method: 'POST' });
     const [tasksRes, projectsRes] = await Promise.all([
       fetch('/api/tasks').then(r => r.json()),
       fetch('/api/projects').then(r => r.json()),
     ]);
+    console.log('[refresh] focusIds after server sync:', getFocusList());
+    console.log('[refresh] sample task sheet_ids after:', tasksRes.slice(0,3).map(t => t.sheet_id));
+    const focusIdsCurrent = getFocusList();
+    const matched = focusIdsCurrent.filter(sid => tasksRes.some(t => t.sheet_id === sid));
+    console.log('[refresh] focusIds that still match tasks:', matched, '/', focusIdsCurrent.length, 'total');
     setTasks(tasksRes);
     setProjects(projectsRes);
     setRefreshing(false);

@@ -142,7 +142,7 @@ export async function syncProject(projectName) {
         if (row.every(v => v == null)) { skipped++; continue; }
         if (!row[0] || !row[0].trim()) { skipped++; continue; }
 
-        const taskId = crypto.randomUUID();
+        const taskId = crypto.createHash('sha256').update(String(row[0])).digest('hex').replace(/^(.{8})(.{4})(.{4})(.{4})(.{12}).*/, '$1-$2-$3-$4-$5');
         const vals = row.slice(0, 12);
         if ((vals[2]?.length ?? 0) > 255) vals[2] = 'Invalid value';
         if ((vals[3]?.length ?? 0) > 255) vals[3] = 'Invalid value';
@@ -177,6 +177,7 @@ export async function syncProject(projectName) {
                 completed_at, project_id, sheet_row
             ) VALUES ${placeholders}
             ON CONFLICT (sheet_id) DO UPDATE SET
+                id           = EXCLUDED.id,
                 created_at   = EXCLUDED.created_at,
                 reporter     = EXCLUDED.reporter,
                 component    = EXCLUDED.component,
