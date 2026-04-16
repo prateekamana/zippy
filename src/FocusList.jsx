@@ -71,7 +71,7 @@ function openSheet(url) {
 }
 
 function TaskCard({ task, index, projectNames, projectGidMap, sheetIdToTask, onRemove, isDragging, onTooltip, onTooltipMove, onTooltipHide }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({ id: task.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({ id: task.sheet_id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -172,7 +172,7 @@ function TaskCard({ task, index, projectNames, projectGidMap, sheetIdToTask, onR
         type="button"
         className="fl-remove-btn"
         title="Remove from Focus List"
-        onClick={() => onRemove(task.id)}
+        onClick={() => onRemove(task.sheet_id)}
       >
         ✕
       </button>
@@ -230,15 +230,15 @@ export default function FocusList() {
   function handleDragEnd({ active, over }) {
     setActiveId(null);
     if (!over || active.id === over.id) return;
-    const oldIndex = focusTasks.findIndex(t => t.id === active.id);
-    const newIndex = focusTasks.findIndex(t => t.id === over.id);
+    const oldIndex = focusTasks.findIndex(t => t.sheet_id === active.id);
+    const newIndex = focusTasks.findIndex(t => t.sheet_id === over.id);
     const reordered = arrayMove(focusTasks, oldIndex, newIndex);
-    const newIds = reordered.map(t => t.id);
+    const newIds = reordered.map(t => t.sheet_id);
     saveFocusList(newIds);
     setFocusIds(newIds);
   }
 
-  const activeTask = activeId ? focusTasks.find(t => t.id === activeId) : null;
+  const activeTask = activeId ? focusTasks.find(t => t.sheet_id === activeId) : null;
 
   return (
     <div className="fl-container">
@@ -260,7 +260,7 @@ export default function FocusList() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={focusTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={focusTasks.map(t => t.sheet_id)} strategy={verticalListSortingStrategy}>
             <div className="fl-list">
               {focusTasks.map((task, index) => (
                 <TaskCard
@@ -271,7 +271,7 @@ export default function FocusList() {
                   projectGidMap={projectGidMap}
                   sheetIdToTask={sheetIdToTask}
                   onRemove={remove}
-                  isDragging={task.id === activeId}
+                  isDragging={task.sheet_id === activeId}
                   onTooltip={(content, x, y) => setTooltip({ visible: true, content, x, y })}
                   onTooltipMove={(x, y) => setTooltip(t => ({ ...t, x, y }))}
                   onTooltipHide={() => setTooltip(t => ({ ...t, visible: false }))}
