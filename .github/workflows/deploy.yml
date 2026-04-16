@@ -14,10 +14,11 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
           script: |
             cd ~/zippy
-            git checkout master
-            git pull
+            git fetch origin
+            git reset --hard origin/master
             npm install
             npm run build
             pm2 restart all
