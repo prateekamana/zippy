@@ -53,7 +53,7 @@ function openSheet(url) {
   }
 }
 
-export default function FocusList() {
+export default function FocusList({ visible }) {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [focusIds, setFocusIds] = useState(getFocusList);
@@ -70,8 +70,8 @@ export default function FocusList() {
   }, []);
 
   useEffect(() => {
-    setFocusIds(getFocusList());
-  }, []);
+    if (visible) setFocusIds(getFocusList());
+  }, [visible]);
 
   const projectNames = Object.fromEntries(projects.map(p => [p.id, p.name]));
   const projectGidMap = Object.fromEntries(projects.map(p => [p.id, p.gid]));
@@ -116,14 +116,13 @@ export default function FocusList() {
     reset();
     if (from === null || to === null) return;
     if (to === from || to === from + 1) return;
-    setFocusIds(prev => {
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      const insertAt = to > from ? to - 1 : to;
-      next.splice(insertAt, 0, moved);
-      saveFocusList(next);
-      return next;
-    });
+    const reordered = [...focusTasks];
+    const [moved] = reordered.splice(from, 1);
+    const insertAt = to > from ? to - 1 : to;
+    reordered.splice(insertAt, 0, moved);
+    const newIds = reordered.map(t => t.id);
+    saveFocusList(newIds);
+    setFocusIds(newIds);
   }
 
   function handleDrop(e) {

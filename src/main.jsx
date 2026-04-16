@@ -46,7 +46,7 @@ function App() {
         </button>
       </div>
       <div style={{ display: page === 'tasks' ? 'block' : 'none' }}><Tasks /></div>
-      <div style={{ display: page === 'focus' ? 'block' : 'none' }}><FocusList /></div>
+      <div style={{ display: page === 'focus' ? 'block' : 'none' }}><FocusList visible={page === 'focus'} /></div>
     </>
   );
 }
