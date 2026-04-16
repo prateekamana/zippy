@@ -242,6 +242,7 @@ export default function Tasks() {
     setTasks(tasksRes);
     setProjects(projectsRes);
     setRefreshing(false);
+    window.dispatchEvent(new CustomEvent('tasksRefreshed', { detail: { tasks: tasksRes, projects: projectsRes } }));
   }
 
   function toggleDateFilter(value) {

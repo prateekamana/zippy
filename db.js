@@ -177,7 +177,6 @@ export async function syncProject(projectName) {
                 completed_at, project_id, sheet_row
             ) VALUES ${placeholders}
             ON CONFLICT (sheet_id) DO UPDATE SET
-                id           = EXCLUDED.id,
                 created_at   = EXCLUDED.created_at,
                 reporter     = EXCLUDED.reporter,
                 component    = EXCLUDED.component,

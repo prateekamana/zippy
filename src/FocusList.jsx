@@ -1,4 +1,20 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import {
+  DndContext,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const FOCUS_KEY = "focusList";
 
@@ -12,6 +28,7 @@ export function getFocusList() {
 
 export function saveFocusList(ids) {
   localStorage.setItem(FOCUS_KEY, JSON.stringify(ids));
+  window.dispatchEvent(new CustomEvent('focusListChanged'));
 }
 
 const SHEET_ID = '1SHSRxATYjYQTuf5zdbBP2Q0KZvQl7kLo6WhSBNTwyFQ';
@@ -53,34 +70,148 @@ function openSheet(url) {
   }
 }
 
-export default function FocusList({ visible }) {
+function TaskCard({ task, index, projectNames, projectGidMap, sheetIdToTask, onRemove, isDragging, onTooltip, onTooltipMove, onTooltipHide }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isSorting ? transition : undefined,
+    opacity: isDragging ? 0.2 : 1,
+  };
+
+  function sheetUrl(t = task) {
+    const gid = projectGidMap[t.project_id];
+    if (gid == null || !t.sheet_row) return null;
+    return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${gid}&range=A${t.sheet_row}`;
+  }
+
+  function renderNotes(notes) {
+    const TOKEN_RE = /(\d+_\d+)/g;
+    const parts = [];
+    let last = 0;
+    let match;
+    while ((match = TOKEN_RE.exec(notes)) !== null) {
+      if (match.index > last) parts.push(notes.slice(last, match.index));
+      const token = match[1];
+      const refTask = sheetIdToTask[token];
+      parts.push(
+        <span
+          key={match.index}
+          className={`task-ref-token${refTask && sheetUrl(refTask) ? " task-ref-token-linked" : ""}`}
+          onMouseEnter={(e) => { if (refTask) onTooltip(refTask, e.clientX, e.clientY); }}
+          onMouseMove={(e) => { if (refTask) onTooltipMove(e.clientX, e.clientY); }}
+          onMouseLeave={onTooltipHide}
+          onClick={() => { if (refTask) { const u = sheetUrl(refTask); if (u) openSheet(u); } }}
+        >
+          {token}
+        </span>
+      );
+      last = match.index + token.length;
+    }
+    if (last < notes.length) parts.push(notes.slice(last));
+    return parts;
+  }
+
+  const url = sheetUrl();
+
+  return (
+    <div ref={setNodeRef} style={style} className="fl-item">
+      <span className="fl-drag-handle" title="Drag to reorder" {...attributes} {...listeners}>⠿</span>
+      <span className="fl-index">{index + 1}</span>
+
+      <div className="task-pill-group fl-task-pill-group">
+        <div className="task-pill fl-task-pill">
+          {projectNames[task.project_id] && (
+            <div className="pill-section s-project">
+              <span className="pill-value pill-project-name">{projectNames[task.project_id]}</span>
+            </div>
+          )}
+          <div className="pill-section s-due">
+            <span className="pill-value">{formatDate(task.due_date)}</span>
+          </div>
+          <div className="pill-section s-assign">
+            <span className="pill-value">{task.assignee}</span>
+          </div>
+          <div className="pill-section s-prio">
+            <span className="pill-value">
+              <span className={priorityBadgeClass(task.priority)[0]}>
+                <span className={priorityBadgeClass(task.priority)[1]}></span>
+                {task.priority}
+              </span>
+            </span>
+          </div>
+          <div className="pill-section s-status">
+            <span className="pill-value">
+              <span className={statusBadgeClass(task.status)}>{task.status}</span>
+            </span>
+          </div>
+          <div className="pill-section s-desc">
+            <span className="pill-value pill-value-wrap">{task.description}</span>
+          </div>
+          {url && (
+            <div className="pill-section s-sheet-link">
+              <button
+                type="button"
+                className="sheet-link"
+                title="Open in Google Sheets"
+                onClick={() => openSheet(url)}
+              >
+                ↗
+              </button>
+            </div>
+          )}
+        </div>
+        {task.notes && (
+          <div className="task-notes-strip">
+            {renderNotes(task.notes)}
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="fl-remove-btn"
+        title="Remove from Focus List"
+        onClick={() => onRemove(task.id)}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+export default function FocusList() {
   const [tasks, setTasks] = useState([]);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
   const [projects, setProjects] = useState([]);
   const [focusIds, setFocusIds] = useState(getFocusList);
+  const [activeId, setActiveId] = useState(null);
+  const [tooltip, setTooltip] = useState({ visible: false, content: null, x: 0, y: 0 });
 
-  // State drives visuals; refs drive drop logic (no stale closure risk)
-  const [draggingIndex, setDraggingIndex] = useState(null);
-  const [dropIndex, setDropIndex] = useState(null);
-  const draggingRef = useRef(null);
-  const dropRef = useRef(null);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+  );
 
   useEffect(() => {
-    fetch("/api/tasks").then(r => r.json()).then(setTasks).catch(console.error);
+    fetch("/api/tasks").then(r => r.json()).then(data => { setTasks(data); setTasksLoaded(true); }).catch(console.error);
     fetch("/api/projects").then(r => r.json()).then(setProjects).catch(console.error);
   }, []);
 
   useEffect(() => {
-    if (visible) setFocusIds(getFocusList());
-  }, [visible]);
+    function syncFocus() { setFocusIds(getFocusList()); }
+    function syncTasks(e) { setTasks(e.detail.tasks); setProjects(e.detail.projects); }
+    window.addEventListener('focusListChanged', syncFocus);
+    window.addEventListener('tasksRefreshed', syncTasks);
+    return () => {
+      window.removeEventListener('focusListChanged', syncFocus);
+      window.removeEventListener('tasksRefreshed', syncTasks);
+    };
+  }, []);
 
   const projectNames = Object.fromEntries(projects.map(p => [p.id, p.name]));
   const projectGidMap = Object.fromEntries(projects.map(p => [p.id, p.gid]));
-
-  function sheetUrl(task) {
-    const gid = projectGidMap[task.project_id];
-    if (gid == null || !task.sheet_row) return null;
-    return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${gid}&range=A${task.sheet_row}`;
-  }
+  const sheetIdToTask = Object.fromEntries(tasks.filter(t => t.sheet_id).map(t => [String(t.sheet_id), t]));
 
   const focusTasks = focusIds
     .map(id => tasks.find(t => t.id === id))
@@ -92,70 +223,22 @@ export default function FocusList({ visible }) {
     saveFocusList(next);
   }
 
-  function handleDragStart(e, index) {
-    draggingRef.current = index;
-    setDraggingIndex(index);
-    e.dataTransfer.effectAllowed = "move";
+  function handleDragStart({ active }) {
+    setActiveId(active.id);
   }
 
-  function handleDragOver(e, index) {
-    e.preventDefault();
-    // Ghost item still receives pointer events — ignore it so it can't corrupt dropRef
-    if (index === draggingRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const insertAt = e.clientY < rect.top + rect.height / 2 ? index : index + 1;
-    if (dropRef.current !== insertAt) {
-      dropRef.current = insertAt;
-      setDropIndex(insertAt);
-    }
-  }
-
-  function doReorder() {
-    const from = draggingRef.current;
-    const to = dropRef.current;
-    reset();
-    if (from === null || to === null) return;
-    if (to === from || to === from + 1) return;
-    const reordered = [...focusTasks];
-    const [moved] = reordered.splice(from, 1);
-    const insertAt = to > from ? to - 1 : to;
-    reordered.splice(insertAt, 0, moved);
+  function handleDragEnd({ active, over }) {
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+    const oldIndex = focusTasks.findIndex(t => t.id === active.id);
+    const newIndex = focusTasks.findIndex(t => t.id === over.id);
+    const reordered = arrayMove(focusTasks, oldIndex, newIndex);
     const newIds = reordered.map(t => t.id);
     saveFocusList(newIds);
     setFocusIds(newIds);
   }
 
-  function handleDrop(e) {
-    e.preventDefault();
-    e.stopPropagation(); // prevent bubble to fl-list triggering a second doReorder
-    doReorder();
-  }
-
-  // Fallback: if drop fired outside list bounds, browser cancels it but dragend still fires.
-  // doReorder reads refs (not cleared yet) and executes. If handleDrop already ran, refs are
-  // null → early return, no double execution.
-  function handleDragEnd() {
-    doReorder();
-  }
-
-  function reset() {
-    draggingRef.current = null;
-    dropRef.current = null;
-    setDraggingIndex(null);
-    setDropIndex(null);
-  }
-
-  function showIndicator(i) {
-    if (dropIndex === null || draggingRef.current === null) return false;
-    if (dropIndex !== i) return false;
-    // Hide when dropping in no-op position
-    const from = draggingRef.current;
-    return i !== from && i !== from + 1;
-  }
-
-  if (tasks.length === 0 && focusIds.length > 0) {
-    return <div className="fl-empty">Loading…</div>;
-  }
+  const activeTask = activeId ? focusTasks.find(t => t.id === activeId) : null;
 
   return (
     <div className="fl-container">
@@ -164,80 +247,69 @@ export default function FocusList({ visible }) {
         <span className="fl-count">{focusTasks.length} task{focusTasks.length !== 1 ? "s" : ""}</span>
       </div>
 
-      {focusTasks.length === 0 ? (
+      {!tasksLoaded ? (
+        <div className="fl-empty">Loading…</div>
+      ) : focusTasks.length === 0 ? (
         <div className="fl-empty">
           No tasks yet. Star (☆) a task from the main view to add it here.
         </div>
       ) : (
-        <div className="fl-list" onDragOver={e => e.preventDefault()} onDrop={handleDrop}>
-          {showIndicator(0) && <div className="fl-drop-indicator" />}
-          {focusTasks.map((task, index) => (
-            <div key={task.id}>
-              <div
-                className={`fl-item${draggingIndex === index ? " fl-item-ghost" : ""}`}
-                draggable
-                onDragStart={e => handleDragStart(e, index)}
-                onDragOver={e => handleDragOver(e, index)}
-                onDrop={handleDrop}
-                onDragEnd={handleDragEnd}
-              >
-                <span className="fl-drag-handle" title="Drag to reorder">⠿</span>
-                <span className="fl-index">{index + 1}</span>
-
-                <div className="task-pill fl-task-pill">
-                  {projectNames[task.project_id] && (
-                    <div className="pill-section s-project">
-                      <span className="pill-value pill-project-name">{projectNames[task.project_id]}</span>
-                    </div>
-                  )}
-                  <div className="pill-section s-due">
-                    <span className="pill-value">{formatDate(task.due_date)}</span>
-                  </div>
-                  <div className="pill-section s-assign">
-                    <span className="pill-value">{task.assignee}</span>
-                  </div>
-                  <div className="pill-section s-prio">
-                    <span className="pill-value">
-                      <span className={priorityBadgeClass(task.priority)[0]}>
-                        <span className={priorityBadgeClass(task.priority)[1]}></span>
-                        {task.priority}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="pill-section s-status">
-                    <span className="pill-value">
-                      <span className={statusBadgeClass(task.status)}>{task.status}</span>
-                    </span>
-                  </div>
-                  <div className="pill-section s-desc">
-                    <span className="pill-value pill-value-wrap">{task.description}</span>
-                  </div>
-                  {sheetUrl(task) && (
-                    <div className="pill-section s-sheet-link">
-                      <button
-                        type="button"
-                        className="sheet-link"
-                        title="Open in Google Sheets"
-                        onClick={() => openSheet(sheetUrl(task))}
-                      >
-                        ↗
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  className="fl-remove-btn"
-                  title="Remove from Focus List"
-                  onClick={() => remove(task.id)}
-                >
-                  ✕
-                </button>
-              </div>
-              {showIndicator(index + 1) && <div className="fl-drop-indicator" />}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={focusTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div className="fl-list">
+              {focusTasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  projectNames={projectNames}
+                  projectGidMap={projectGidMap}
+                  sheetIdToTask={sheetIdToTask}
+                  onRemove={remove}
+                  isDragging={task.id === activeId}
+                  onTooltip={(content, x, y) => setTooltip({ visible: true, content, x, y })}
+                  onTooltipMove={(x, y) => setTooltip(t => ({ ...t, x, y }))}
+                  onTooltipHide={() => setTooltip(t => ({ ...t, visible: false }))}
+                />
+              ))}
             </div>
-          ))}
+          </SortableContext>
+          <DragOverlay>
+            {activeTask && (
+              <div className="fl-item fl-item-overlay">
+                <span className="fl-drag-handle">⠿</span>
+                <span className="fl-index">{focusTasks.findIndex(t => t.id === activeTask.id) + 1}</span>
+                <div className="task-pill fl-task-pill">
+                  {projectNames[activeTask.project_id] && (
+                    <div className="pill-section s-project">
+                      <span className="pill-value pill-project-name">{projectNames[activeTask.project_id]}</span>
+                    </div>
+                  )}
+                  <div className="pill-section s-desc">
+                    <span className="pill-value pill-value-wrap">{activeTask.description}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {tooltip.visible && tooltip.content && (
+        <div
+          className="task-ref-tooltip"
+          style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}
+        >
+          <div className="tooltip-desc">{tooltip.content.description}</div>
+          <div className="tooltip-meta">
+            {tooltip.content.assignee && <span>{tooltip.content.assignee}</span>}
+            {tooltip.content.status && <span className={statusBadgeClass(tooltip.content.status)}>{tooltip.content.status}</span>}
+          </div>
         </div>
       )}
     </div>
