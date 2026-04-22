@@ -97,9 +97,11 @@ function parseCSV(text) {
 }
 
 // MM/DD/YYYY or MM/DD/YY → YYYY-MM-DD, with guards for bad data
+// Also handles trailing time component (e.g. "4/21/2026 20:00:00")
 function parseDate(str) {
     if (!str || !str.trim()) return null;
-    const parts = str.trim().split('/');
+    const dateOnly = str.trim().replace(/\s+\d{1,2}:\d{2}(:\d{2})?$/, '');
+    const parts = dateOnly.split('/');
     if (parts.length !== 3) return null;
     let [m, d, y] = parts;
     m = m.trim(); d = d.trim(); y = y.trim();
