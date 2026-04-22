@@ -197,7 +197,7 @@ export default function Tasks() {
   );
 
   function renderNotes(notes) {
-    const TOKEN_RE = /(\d+_\d+)/g;
+    const TOKEN_RE = /(\d+_\d+|CWP-\d+)/g;
     const parts = [];
     let last = 0;
     let match;
