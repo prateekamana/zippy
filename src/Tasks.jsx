@@ -14,7 +14,7 @@ export default function Tasks() {
 
   const [projects, setProjects] = useState([]);
 
-  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "", company: "", completedWeek: null };
+  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "", company: "", completedFrom: "", completedTo: "" };
 
   function readFiltersFromStorage() {
     try { return { ...defaultFilters, ...JSON.parse(localStorage.getItem('filters')) }; }
@@ -138,14 +138,12 @@ export default function Tasks() {
       return true;
     })
     .filter(task => {
-      if (!filters.completedWeek || filters.status !== "completed") return true;
+      if (filters.status !== "completed") return true;
+      if (!filters.completedFrom && !filters.completedTo) return true;
       if (!task.completed_at) return false;
-      const d = new Date(task.completed_at.includes('T') ? task.completed_at : task.completed_at + 'T00:00:00');
-      const day = d.getDate();
-      if (filters.completedWeek === 1) return day >= 1  && day <= 7;
-      if (filters.completedWeek === 2) return day >= 8  && day <= 14;
-      if (filters.completedWeek === 3) return day >= 15 && day <= 21;
-      if (filters.completedWeek === 4) return day >= 22;
+      const d = task.completed_at.slice(0, 10);
+      if (filters.completedFrom && d < filters.completedFrom) return false;
+      if (filters.completedTo   && d > filters.completedTo)   return false;
       return true;
     })
     .sort((a, b) => {
@@ -346,6 +344,33 @@ export default function Tasks() {
     );
   }
 
+  function completedPresetRange(preset) {
+    const now = new Date();
+    const toISO = d => d.toISOString().slice(0, 10);
+    const startOfWeek = d => { const c = new Date(d); c.setDate(d.getDate() - d.getDay()); return c; };
+    if (preset === "this-week") {
+      const s = startOfWeek(now);
+      const e = new Date(s); e.setDate(s.getDate() + 6);
+      return [toISO(s), toISO(e)];
+    }
+    if (preset === "last-week") {
+      const s = startOfWeek(now); s.setDate(s.getDate() - 7);
+      const e = new Date(s); e.setDate(s.getDate() + 6);
+      return [toISO(s), toISO(e)];
+    }
+    if (preset === "this-month") {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      return [toISO(s), toISO(e)];
+    }
+    if (preset === "last-month") {
+      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0);
+      return [toISO(s), toISO(e)];
+    }
+    return ["", ""];
+  }
+
   return (
     <div>
       <div className="filter-bar">
@@ -395,19 +420,39 @@ export default function Tasks() {
           >Pending</button>
           <button
             className={`filter-btn${filters.status === "completed" ? " filter-btn-active" : ""}`}
-            onClick={() => setFilters(f => ({ ...f, status: f.status === "completed" ? "" : "completed", completedWeek: null }))}
+            onClick={() => setFilters(f => ({ ...f, status: f.status === "completed" ? "" : "completed", completedFrom: "", completedTo: "" }))}
           >Completed</button>
         </div>
 
         {filters.status === "completed" && (
-          <div className="btn-group">
-            {[1, 2, 3, 4].map(w => (
-              <button
-                key={w}
-                className={`filter-btn${filters.completedWeek === w ? " filter-btn-active" : ""}`}
-                onClick={() => setFilters(f => ({ ...f, completedWeek: f.completedWeek === w ? null : w }))}
-              >Week {w}</button>
-            ))}
+          <div className="btn-group completed-date-filter">
+            <select
+              className="filter-select"
+              value=""
+              onChange={e => {
+                const [from, to] = completedPresetRange(e.target.value);
+                setFilters(f => ({ ...f, completedFrom: from, completedTo: to }));
+              }}
+            >
+              <option value="">Date range...</option>
+              <option value="this-week">This week</option>
+              <option value="last-week">Last week</option>
+              <option value="this-month">This month</option>
+              <option value="last-month">Last month</option>
+            </select>
+            <input
+              type="date"
+              className="filter-date-input"
+              value={filters.completedFrom}
+              onChange={e => setFilters(f => ({ ...f, completedFrom: e.target.value }))}
+            />
+            <span className="date-range-sep">–</span>
+            <input
+              type="date"
+              className="filter-date-input"
+              value={filters.completedTo}
+              onChange={e => setFilters(f => ({ ...f, completedTo: e.target.value }))}
+            />
           </div>
         )}
 
@@ -422,7 +467,7 @@ export default function Tasks() {
           >Upcoming</button>
         </div>
 
-        {(filters.assignee || filters.status || filters.project || filters.company || filters.dateFilter) && (
+        {(filters.assignee || filters.status || filters.project || filters.company || filters.dateFilter || filters.completedFrom || filters.completedTo) && (
           <button className="filter-btn" onClick={() => setFilters(defaultFilters)}>✕ Clear</button>
         )}
 
