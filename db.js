@@ -151,7 +151,7 @@ export async function syncProject(projectName) {
         if ((vals[8]?.length ?? 0) > 255) vals[8] = 'Invalid value';
         vals[1]  = parseDate(vals[1]);   // created_at
         vals[5]  = parseDate(vals[5]);   // due_date
-        vals[10] = parseDate(vals[10]);  // completed_at
+        vals[10] = null;                 // completed_at — managed by sync logic, never from sheet
         vals[11] = project.id;           // project_id
         vals.push(sheetRow);             // sheet_row
 
@@ -189,7 +189,14 @@ export async function syncProject(projectName) {
                 status       = EXCLUDED.status,
                 assignee     = EXCLUDED.assignee,
                 notes        = EXCLUDED.notes,
-                completed_at = EXCLUDED.completed_at,
+                completed_at = CASE
+                    WHEN EXCLUDED.status IN ('Ready for Testing', 'Resolved')
+                         AND (tasks.status NOT IN ('Ready for Testing', 'Resolved') OR tasks.status IS NULL)
+                        THEN date('now')
+                    WHEN EXCLUDED.status NOT IN ('Ready for Testing', 'Resolved')
+                        THEN NULL
+                    ELSE tasks.completed_at
+                END,
                 project_id   = EXCLUDED.project_id,
                 sheet_row    = EXCLUDED.sheet_row
         `, batch.flat());

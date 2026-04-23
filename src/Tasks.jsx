@@ -14,7 +14,7 @@ export default function Tasks() {
 
   const [projects, setProjects] = useState([]);
 
-  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "", company: "" };
+  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "", company: "", completedWeek: null };
 
   function readFiltersFromStorage() {
     try { return { ...defaultFilters, ...JSON.parse(localStorage.getItem('filters')) }; }
@@ -137,6 +137,17 @@ export default function Tasks() {
       if (filters.dateFilter === "upcoming") return due > today;
       return true;
     })
+    .filter(task => {
+      if (!filters.completedWeek || filters.status !== "completed") return true;
+      if (!task.completed_at) return false;
+      const d = new Date(task.completed_at.includes('T') ? task.completed_at : task.completed_at + 'T00:00:00');
+      const day = d.getDate();
+      if (filters.completedWeek === 1) return day >= 1  && day <= 7;
+      if (filters.completedWeek === 2) return day >= 8  && day <= 14;
+      if (filters.completedWeek === 3) return day >= 15 && day <= 21;
+      if (filters.completedWeek === 4) return day >= 22;
+      return true;
+    })
     .sort((a, b) => {
       const taskScores = {'Critical': 0, 'Higher': 1, 'High': 2, 'Medium': 3, 'Low': 4};
       let toReturn = taskScores[a.priority] - taskScores[b.priority] == 0 ? new Date(b.due_date) - new Date(a.due_date) : taskScores[a.priority] - taskScores[b.priority];
@@ -179,6 +190,13 @@ export default function Tasks() {
   }, [accordionEnabled]);
 
   const [focusIds, setFocusIds] = useState(getFocusList);
+
+  useEffect(() => {
+    function syncFocus() { setFocusIds(getFocusList()); }
+    window.addEventListener('focusListChanged', syncFocus);
+    return () => window.removeEventListener('focusListChanged', syncFocus);
+  }, []);
+
   const [refreshing, setRefreshing] = useState(false);
   const [tooltip, setTooltip] = useState({ visible: false, content: null, x: 0, y: 0 });
 
@@ -283,6 +301,11 @@ export default function Tasks() {
               <span className={statusBadgeClass(task.status)}>{task.status}</span>
             </span>
           </div>
+          {filters.status === "completed" && task.completed_at && (
+            <div className="pill-section s-completed-at">
+              <span className="pill-value">{formatDate(task.completed_at)}</span>
+            </div>
+          )}
           {task.sheet_id && (
             <div className="pill-section s-sheet-id">
               <span className="pill-value pill-sheet-id">{task.sheet_id}</span>
@@ -372,9 +395,21 @@ export default function Tasks() {
           >Pending</button>
           <button
             className={`filter-btn${filters.status === "completed" ? " filter-btn-active" : ""}`}
-            onClick={() => setFilters(f => ({ ...f, status: f.status === "completed" ? "" : "completed" }))}
+            onClick={() => setFilters(f => ({ ...f, status: f.status === "completed" ? "" : "completed", completedWeek: null }))}
           >Completed</button>
         </div>
+
+        {filters.status === "completed" && (
+          <div className="btn-group">
+            {[1, 2, 3, 4].map(w => (
+              <button
+                key={w}
+                className={`filter-btn${filters.completedWeek === w ? " filter-btn-active" : ""}`}
+                onClick={() => setFilters(f => ({ ...f, completedWeek: f.completedWeek === w ? null : w }))}
+              >Week {w}</button>
+            ))}
+          </div>
+        )}
 
         <div className="btn-group">
           <button
