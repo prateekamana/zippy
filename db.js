@@ -151,8 +151,9 @@ export async function syncProject(projectName) {
         if ((vals[8]?.length ?? 0) > 255) vals[8] = 'Invalid value';
         vals[1]  = parseDate(vals[1]);   // created_at
         vals[5]  = parseDate(vals[5]);   // due_date
-        const completedStatuses = ['Ready for Testing', 'Resolved'];
-        vals[10] = completedStatuses.includes(vals[8]) ? new Date().toISOString().slice(0, 10) : null;
+        const statusLower = (vals[8] ?? '').toLowerCase();
+        const isCompletedStatus = statusLower === 'ready for testing' || statusLower === 'resolved';
+        vals[10] = isCompletedStatus ? new Date().toISOString().slice(0, 10) : null;
         vals[11] = project.id;           // project_id
         vals.push(sheetRow);             // sheet_row
 
@@ -191,10 +192,10 @@ export async function syncProject(projectName) {
                 assignee     = EXCLUDED.assignee,
                 notes        = EXCLUDED.notes,
                 completed_at = CASE
-                    WHEN EXCLUDED.status IN ('Ready for Testing', 'Resolved')
-                         AND (tasks.status NOT IN ('Ready for Testing', 'Resolved') OR tasks.status IS NULL)
+                    WHEN LOWER(EXCLUDED.status) IN ('ready for testing', 'resolved')
+                         AND (LOWER(tasks.status) NOT IN ('ready for testing', 'resolved') OR tasks.status IS NULL)
                         THEN date('now')
-                    WHEN EXCLUDED.status NOT IN ('Ready for Testing', 'Resolved')
+                    WHEN LOWER(EXCLUDED.status) NOT IN ('ready for testing', 'resolved')
                         THEN NULL
                     ELSE tasks.completed_at
                 END,
