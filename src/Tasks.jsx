@@ -14,7 +14,7 @@ export default function Tasks() {
 
   const [projects, setProjects] = useState([]);
 
-  const defaultFilters = { assignee: "", dateFilter: null, status: "", project: "", company: "", completedFrom: "", completedTo: "" };
+  const defaultFilters = { assignee: "", dateFilter: null, status: "", statusExact: "", project: "", company: "", completedFrom: "", completedTo: "" };
 
   function readFiltersFromStorage() {
     try { return { ...defaultFilters, ...JSON.parse(localStorage.getItem('filters')) }; }
@@ -105,6 +105,7 @@ export default function Tasks() {
   }
 
   const assignees = [...new Set(tasks.map(t => t.assignee).filter(Boolean))].sort();
+  const statuses = [...new Set(tasks.map(t => t.status).filter(Boolean))].sort();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -112,6 +113,7 @@ export default function Tasks() {
   const visibleTasks = tasks
     .filter(task => {
       if (!filters.assignee) return true;
+      if (filters.assignee === "__unassigned__") return !task.assignee;
       return task.assignee === filters.assignee;
     })
     .filter(task => {
@@ -119,6 +121,10 @@ export default function Tasks() {
       if (filters.status === "completed") return isCompleted(task.status);
       if (filters.status === "pending") return !isCompleted(task.status);
       return true;
+    })
+    .filter(task => {
+      if (!filters.statusExact) return true;
+      return task.status === filters.statusExact;
     })
     .filter(task => {
       if (!filters.project) return true;
@@ -389,6 +395,7 @@ export default function Tasks() {
           onChange={e => setFilters(f => ({ ...f, assignee: e.target.value }))}
         >
           <option value="">All assignees</option>
+          <option value="__unassigned__">Unassigned</option>
           {assignees.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
 
@@ -467,14 +474,18 @@ export default function Tasks() {
           >Upcoming</button>
         </div>
 
-        {(filters.assignee || filters.status || filters.project || filters.company || filters.dateFilter || filters.completedFrom || filters.completedTo) && (
+        {(filters.assignee || filters.status || filters.statusExact || filters.project || filters.company || filters.dateFilter || filters.completedFrom || filters.completedTo) && (
           <button className="filter-btn" onClick={() => setFilters(defaultFilters)}>✕ Clear</button>
         )}
 
-        <button
-          className={`filter-btn${accordionEnabled ? " filter-btn-active" : ""}`}
-          onClick={() => setAccordionEnabled(v => !v)}
-        >Accordion</button>
+        <select
+          className="filter-select"
+          value={filters.statusExact}
+          onChange={e => setFilters(f => ({ ...f, statusExact: e.target.value }))}
+        >
+          <option value="">All statuses</option>
+          {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
 
         <button className="filter-btn refresh-btn" onClick={handleRefresh} disabled={refreshing}>
           {refreshing ? "Refreshing..." : "Refresh"} ↻
