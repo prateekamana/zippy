@@ -22,7 +22,6 @@ export default function Tasks() {
   }
 
   const [filters, setFilters] = useState(readFiltersFromStorage);
-  const [collapsedProjects, setCollapsedProjects] = useState({});
 
   useEffect(() => {
     localStorage.setItem('filters', JSON.stringify(filters));
@@ -154,44 +153,12 @@ export default function Tasks() {
     })
     .sort((a, b) => {
       const taskScores = {'Critical': 0, 'Higher': 1, 'High': 2, 'Medium': 3, 'Low': 4};
-      let toReturn = taskScores[a.priority] - taskScores[b.priority] == 0 ? new Date(b.due_date) - new Date(a.due_date) : taskScores[a.priority] - taskScores[b.priority];
-      return toReturn;
+      const prioDiff = (taskScores[a.priority] ?? 99) - (taskScores[b.priority] ?? 99);
+      if (prioDiff !== 0) return prioDiff;
+      const aDate = a.due_date ? new Date(a.due_date) : Infinity;
+      const bDate = b.due_date ? new Date(b.due_date) : Infinity;
+      return aDate - bDate;
     });
-
-  // Group tasks by project
-  const tasksByProject = {};
-  for (const task of visibleTasks) {
-    const pid = task.project_id;
-    if (!tasksByProject[pid]) tasksByProject[pid] = [];
-    tasksByProject[pid].push(task);
-  }
-
-  const visibleProjectIds = Object.keys(tasksByProject);
-
-  function toggleProject(projectId) {
-    setCollapsedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
-  }
-
-  function expandAllProjects() {
-    const next = {};
-    visibleProjectIds.forEach(id => { next[id] = false; });
-    setCollapsedProjects(next);
-  }
-
-  function collapseAllProjects() {
-    const next = {};
-    visibleProjectIds.forEach(id => { next[id] = true; });
-    setCollapsedProjects(next);
-  }
-
-  const [accordionEnabled, setAccordionEnabled] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('accordionEnabled') ?? 'true'); }
-    catch { return true; }
-  });
-
-  useEffect(() => {
-    localStorage.setItem('accordionEnabled', JSON.stringify(accordionEnabled));
-  }, [accordionEnabled]);
 
   const [focusIds, setFocusIds] = useState(getFocusList);
 
@@ -492,13 +459,6 @@ export default function Tasks() {
         </button>
       </div>
 
-      {accordionEnabled && visibleProjectIds.length > 1 && (
-        <div className="accordion-controls">
-          <button className="filter-btn" onClick={expandAllProjects}>Expand All</button>
-          <button className="filter-btn" onClick={collapseAllProjects}>Collapse All</button>
-        </div>
-      )}
-
       {tooltip.visible && tooltip.content && (
         <div
           className="task-ref-tooltip"
@@ -518,33 +478,7 @@ export default function Tasks() {
         </div>
       )}
 
-      {accordionEnabled
-        ? visibleProjectIds.map(projectId => {
-            const isCollapsed = !!collapsedProjects[projectId];
-            const name = projectNames[projectId] || projectId;
-            return (
-              <div key={projectId} className="project-accordion">
-                <button
-                  type="button"
-                  className="project-accordion-header"
-                  onClick={() => toggleProject(projectId)}
-                >
-                  <span className={`accordion-chevron ${isCollapsed ? "collapsed" : ""}`}>
-                    {isCollapsed ? "▶" : "▼"}
-                  </span>
-                  {name}
-                  <span className="accordion-count">{tasksByProject[projectId].length}</span>
-                </button>
-                {!isCollapsed && (
-                  <div className="accordion-body">
-                    {tasksByProject[projectId].map(t => renderTask(t))}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        : visibleTasks.map(t => renderTask(t, true))
-      }
+      {visibleTasks.map(t => renderTask(t, true))}
     </div>
   );
 }
